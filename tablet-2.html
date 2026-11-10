@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Αποθήκη - Tablet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%); 
+            margin: 0; padding: 20px; text-align: center; min-height: 100vh;
+            user-select: none; -webkit-user-select: none; display: flex; flex-direction: column; 
+        }
+        
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; }
+        .login-box h2 { margin: 0 0 10px 0; color: #1a202c; }
+        .login-input { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 16px; font-family: 'Inter', sans-serif; outline: none; }
+        .login-input:focus { border-color: #3182ce; }
+        .login-btn { background: #3182ce; color: white; border: none; padding: 12px; font-size: 16px; font-weight: 700; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .login-btn:active { background: #2b6cb0; }
+        .error-msg { color: #e53e3e; font-size: 14px; display: none; font-weight: 600; }
+
+        #main-app { display: none; flex-grow: 1; width: 100%; }
+        
+        .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 10px auto; }
+        h1 { color: #1a202c; font-size: 32px; margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+        .logout-btn { background: transparent; border: 2px solid #e53e3e; color: #e53e3e; padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        
+        .top-actions { display: flex; justify-content: center; align-items: stretch; gap: 15px; max-width: 700px; margin: 0 auto 20px auto; }
+        .worker-bar { background: white; padding: 15px 25px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; gap: 10px; border: 2px solid #e2e8f0; flex: 1; }
+        .worker-inner { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; }
+        .worker-bar label { font-weight: 600; color: #2d3748; font-size: 18px; }
+        .worker-select { padding: 10px 15px; border-radius: 8px; border: 2px solid #cbd5e0; font-size: 18px; background: #f8fafc; color: #1a202c; font-weight: 600; outline: none; cursor: pointer; }
+        .new-worker-input { padding: 10px; border-radius: 8px; border: 2px solid #3182ce; font-size: 16px; width: 80%; text-align: center; font-weight: 600; display: none; text-transform: uppercase; }
+
+        .search-toggle-btn { background: white; border: 2px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-size: 26px; padding: 0 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .search-toggle-btn:hover, .search-toggle-btn.active { border-color: #3182ce; background: #ebf8ff; }
+
+        .search-box-wrapper { display: none; max-width: 650px; margin: 0 auto 25px auto; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .search-input { width: 100%; box-sizing: border-box; padding: 16px; border-radius: 16px; border: 2px solid #3182ce; font-size: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); outline: none; font-family: 'Inter'; font-weight: 500; }
+
+        #barcode-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; }
+        #reader-container { width: 90%; max-width: 500px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn-close-cam { margin-top: 20px; background: #ef4444; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; }
+
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #enlarged-img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn-close-image { margin-top: 20px; background: #ef4444; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; }
+
+        .columns-wrapper { display: flex; flex-direction: row; gap: 40px; justify-content: center; max-width: 1400px; margin: 0 auto; align-items: stretch; }
+        .divider { width: 4px; background: linear-gradient(to bottom, transparent, #475569, transparent); border-radius: 5px; }
+        
+        details { flex: 1; min-width: 350px; background: transparent; text-align: left; }
+        summary.main-summary { color: white; font-size: 24px; font-weight: 700; padding: 20px 25px; border-radius: 12px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); }
+        .cleaning-header { background-color: #0072B2; }
+        .electrical-header { background-color: #D55E00; }
+        summary.main-summary::-webkit-details-marker { display: none; }
+        summary.main-summary::after { content: '▼'; font-size: 18px; }
+        details[open] > summary.main-summary::after { transform: rotate(180deg); color: #38bdf8; }
+        
+        .sub-details { background: rgba(255, 255, 255, 0.4); margin-bottom: 15px; border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.6); }
+        summary.sub-summary { background-color: #4a5568; color: white; font-size: 18px; font-weight: 600; padding: 12px 20px; border-radius: 8px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary.sub-summary::-webkit-details-marker { display: none; }
+        summary.sub-summary::after { content: '▼'; font-size: 14px; }
+
+        .child-details { background: rgba(255, 255, 255, 0.7); margin: 10px 0; border-radius: 10px; padding: 8px; border: 1px solid #cbd5e0; }
+        summary.child-summary { background-color: #718096; color: white; font-size: 16px; font-weight: 600; padding: 10px 15px; border-radius: 6px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary.child-summary::-webkit-details-marker { display: none; }
+        summary.child-summary::after { content: '▼'; font-size: 12px; }
+
+        .sub-child-details { background: rgba(255, 255, 255, 0.9); margin: 8px 0; border-radius: 8px; padding: 6px; border: 1px solid #a0aec0; }
+        summary.sub-child-summary { background-color: #a0aec0; color: white; font-size: 15px; font-weight: 600; padding: 8px 12px; border-radius: 6px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        summary.sub-child-summary::-webkit-details-marker { display: none; }
+        summary.sub-child-summary::after { content: '▼'; font-size: 10px; }
+        
+        .sub-inventory-section { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; padding-top: 15px; padding-bottom: 5px; }
+        
+        .item-card { background-color: white; padding: 15px 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+        .card-top { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+        .product-img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; cursor: zoom-in; flex-shrink:0; }
+        .no-img { width: 60px; height: 60px; border-radius: 8px; border: 1px dashed #cbd5e0; display: flex; align-items: center; justify-content: center; font-size: 24px; background: #f8fafc; color: #a0aec0; flex-shrink:0; }
+        
+        .item-name { font-size: 15px; font-weight: 700; color: #2d3748; display: flex; flex-direction: column; align-items: flex-start; text-align: left; line-height: 1.2; word-break: break-word; flex: 1; }
+        .item-code { font-size: 12px; font-weight: 500; color: #718096; margin-top: 4px; }
+        .item-stock { font-size: 36px; margin: 5px 0 10px 0; font-weight: 700; transition: color 0.3s; }
+        
+        .action-area { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 5px; }
+        .qty-input { width: 100%; padding: 10px; font-size: 15px; text-align: center; border: 2px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; outline: none; font-weight: 600; font-family: 'Inter'; }
+        
+        .btn-row { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
+        .take-btn { flex: 1; background-color: #38a169; color: white; border: none; padding: 10px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .take-btn:active:not(:disabled) { transform: scale(0.95); opacity: 0.9; }
+        .take-btn:disabled, .qty-input:disabled { background-color: #edf2f7 !important; cursor: not-allowed; color: #a0aec0 !important; }
+        
+        .reason-input { width: 100%; padding: 8px; font-size: 13px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; margin-top: 5px; outline: none; font-family: 'Inter', sans-serif; }
+        .reason-input:focus { border-color: #3182ce; }
+
+        .add-btn { background-color: #dd6b20; }
+        .btn-row .take-btn { padding: 10px 4px; line-height: 1.2; min-width: 0; }
+        .rcv-btn { background-color: #2f855a; font-size: 16px; padding: 14px; }
+        .receive-actions { display: none; }
+        .receive-mode .normal-actions { display: none !important; }
+        .receive-mode .receive-actions { display: flex; }
+        .receive-mode .item-card { border: 2px solid #2f855a; }
+        #receive-banner { display: none; max-width: 700px; margin: 0 auto 20px auto; background: #2f855a; color: white; padding: 14px 20px; border-radius: 16px; font-weight: 700; font-size: 17px; align-items: center; justify-content: space-between; gap: 15px; box-shadow: 0 4px 12px rgba(47,133,90,0.4); }
+        #receive-exit-btn { background: white; color: #2f855a; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; flex-shrink: 0; }
+        #receive-toggle-btn { flex-direction: column; font-size: 13px; font-weight: 700; color: #2f855a; line-height: 1.2; gap: 2px; }
+        #receive-toggle-btn.active { border-color: #2f855a; background: #f0fff4; }
+
+        .search-toggle-btn.labeled { flex-direction: column; font-size: 13px; font-weight: 700; line-height: 1.2; gap: 2px; color: #4a5568; }
+        .tool-buttons { display: flex; gap: 10px; }
+
+        #undo-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2500; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; }
+        .undo-box { background: white; border-radius: 16px; width: 100%; max-width: 640px; max-height: 90vh; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .undo-box h2 { margin: 0 0 6px 0; color: #1a202c; font-size: 22px; }
+        .undo-sub { color: #718096; font-size: 14px; margin-bottom: 12px; }
+        .undo-box .worker-select { width: 100%; box-sizing: border-box; margin-bottom: 12px; }
+        #undo-list { overflow-y: auto; flex: 1; min-height: 120px; }
+        .undo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .undo-row-main { flex: 1; font-size: 14px; color: #2d3748; line-height: 1.35; word-break: break-word; }
+        .undo-row-sub { font-size: 12px; color: #718096; margin-top: 2px; }
+        .undo-row-btn { background: #dd6b20; color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+        .undo-row-btn:disabled { opacity: 0.5; }
+        .undo-empty { text-align: center; color: #718096; padding: 25px 0; font-size: 15px; }
+
+        .loading { font-size: 20px; color: #718096; width: 100%; text-align: center; font-weight: 600; }
+        .creator-credit { text-align: center; margin-top: auto; padding-top: 40px; font-size: 13px; color: #a0aec0; font-weight: 500; width: 100%; }
+
+        .toast { visibility: hidden; min-width: 250px; background-color: #38a169; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 4000; left: 50%; transform: translateX(-50%); bottom: 30px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.4s, bottom 0.4s; }
+        .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+        @media (max-width: 850px) {
+            .columns-wrapper { flex-direction: column; }
+            .divider { width: 100%; height: 4px; background: linear-gradient(to right, transparent, #475569, transparent); margin: 15px 0; }
+            .header-container { flex-direction: column; gap: 15px; }
+            .top-actions { flex-direction: column; align-items: center; }
+            .worker-bar { width: 100%; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            h1 { font-size: 22px; line-height: 1.2; }
+            details { min-width: 0; }
+            .sub-inventory-section { grid-template-columns: 1fr; }
+            .top-actions { gap: 10px; }
+            .worker-bar { padding: 12px 14px; box-sizing: border-box; }
+            .worker-inner { flex-direction: column; gap: 8px; }
+            .worker-select { width: 100%; box-sizing: border-box; font-size: 16px; }
+            .new-worker-input { width: 100%; box-sizing: border-box; font-size: 16px; }
+            .tool-buttons { width: 100%; justify-content: space-between; }
+            .tool-buttons .search-toggle-btn { flex: 1; padding: 10px 6px; }
+            summary.main-summary { font-size: 20px; padding: 16px 18px; }
+            summary.sub-summary { font-size: 17px; }
+            .sub-details { padding: 8px; }
+            .item-stock { font-size: 30px; }
+            .qty-input { font-size: 16px; padding: 12px; }
+            .reason-input { font-size: 16px; padding: 10px; }
+            .take-btn { padding: 14px 4px; font-size: 15px; }
+            #receive-banner { flex-direction: column; text-align: center; font-size: 15px; padding: 12px 14px; }
+            .undo-box { padding: 14px; }
+            .undo-row { flex-direction: column; align-items: stretch; }
+            .undo-row-btn { padding: 12px; }
+            .creator-credit { padding-top: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Είσοδος στο Tablet</h2>
+            <div id="login-error" class="error-msg">Λάθος Email ή Κωδικός</div>
+            <input type="email" id="login-email" class="login-input" placeholder="Email (πχ. tablet@...)">
+            <input type="password" id="login-password" class="login-input" placeholder="Κωδικός">
+            <button id="login-btn" class="login-btn">Σύνδεση</button>
+        </div>
+    </div>
+
+    <div id="main-app">
+        <div class="header-container">
+            <div></div>
+            <h1>Διαχείριση Υλικών Αποθήκης</h1>
+            <div></div>
+        </div>
+        
+        <div class="top-actions">
+            <div class="worker-bar">
+                <div class="worker-inner">
+                    <label for="worker-name">👤 Εργαζόμενος:</label>
+                    <select id="worker-name" class="worker-select">
+                        <option value="" disabled selected>-- Επιλέξτε Όνομα --</option>
+                    </select>
+                </div>
+                <input type="text" id="new-worker-input" class="new-worker-input" placeholder="Πληκτρολογήστε το όνομα σας...">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label for="destination-select" style="font-size:13px; color:#a0aec0; font-weight:600;">📍 Προορισμός:</label>
+                    <select id="destination-select" style="padding:6px 10px; border-radius:6px; border:1px solid #e2e8f0; font-size:14px; background:#f8fafc; color:#718096; font-weight:600; outline:none; cursor:pointer;">
+                        <option value="Έδρα" selected>Έδρα</option>
+                        <option value="Μεσολόγγι">Μεσολόγγι</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="tool-buttons">
+                <button id="search-toggle-btn" class="search-toggle-btn" title="Αναζήτηση">🔍</button>
+                <button id="camera-btn" class="search-toggle-btn" style="font-size:24px;" title="Σκανάρισμα Barcode">📷</button>
+                <button id="receive-toggle-btn" class="search-toggle-btn labeled" title="Παραλαβή εμπορεύματος"><span style="font-size:24px;">📥</span><span>Παραλαβή</span></button>
+                <button id="undo-open-btn" class="search-toggle-btn labeled" title="Αναίρεση κίνησης"><span style="font-size:24px;">↩️</span><span>Αναίρεση</span></button>
+            </div>
+        </div>
+
+        <div id="receive-banner">
+            <span>📥 ΛΕΙΤΟΥΡΓΙΑ ΠΑΡΑΛΑΒΗΣ — οι ποσότητες που πατάτε θα ΠΡΟΣΤΕΘΟΥΝ στην αποθήκη</span>
+            <button id="receive-exit-btn">Έξοδος</button>
+        </div>
+
+        <div id="search-box-wrapper" class="search-box-wrapper">
+            <input type="text" id="search-input" class="search-input" placeholder="Αναζήτηση είδους ή κωδικού...">
+        </div>
+
+        <div id="loading-msg" class="loading">Φόρτωση δεδομένων...</div>
+
+        <div class="columns-wrapper">
+            <details id="main-cleaning">
+                <summary class="main-summary cleaning-header">Καθαριστικά</summary>
+                <div id="cleaning-container" class="inventory-section"></div>
+            </details>
+            <div class="divider"></div>
+            <details id="main-electrical">
+                <summary class="main-summary electrical-header">Ηλεκτρολογικά</summary>
+                <div id="electrical-container" class="inventory-section"></div>
+            </details>
+        </div>
+    </div>
+
+    <div id="barcode-modal">
+        <h2 style="color:white; margin-bottom: 20px;">Σκανάρισμα Barcode</h2>
+        <div id="reader-container">
+            <div id="reader"></div>
+        </div>
+        <button id="close-camera-btn" class="btn-close-cam">Ακύρωση</button>
+    </div>
+
+    <div id="image-modal">
+        <img id="enlarged-img" src="" alt="Προϊόν">
+        <button id="close-image-btn" class="btn-close-image">Κλείσιμο</button>
+    </div>
+
+    <div id="undo-modal">
+        <div class="undo-box">
+            <h2>↩️ Αναίρεση κίνησης</h2>
+            <div class="undo-sub">Επιλέξτε το όνομά σας και μετά την κίνηση που έγινε λάθος (τελευταίες 48 ώρες).</div>
+            <select id="undo-worker-select" class="worker-select"></select>
+            <div id="undo-list"></div>
+            <button id="undo-close-btn" class="btn-close-cam" style="margin-top:12px; align-self:center;">Κλείσιμο</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Επιτυχής Αφαίρεση!</div>
+    <div class="creator-credit">👨‍💻 Made by Fotis Vasilopoulos</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, increment, addDoc, setDoc, getDocs, query, where, orderBy, runTransaction, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+       const firebaseConfig = {
+            apiKey: "AIzaSyDxwGGdkDPeGvMzGKASLn67c2YGO2122PM",
+            authDomain: "warehousepentest.firebaseapp.com",
+            projectId: "warehousepentest",
+            storageBucket: "warehousepentest.firebasestorage.app",
+            messagingSenderId: "899686569971",
+            appId: "1:899686569971:web:48acd411ee11c7b88be486",
+            measurementId: "G-RTF1FH7H4E"
+        };
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        enableIndexedDbPersistence(db).catch((err) => { console.warn("Offline persistence issue:", err); });
+
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginBtn = document.getElementById('login-btn');
+        const errorMsg = document.getElementById('login-error');
+        const searchInput = document.getElementById('search-input');
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const searchBoxWrapper = document.getElementById('search-box-wrapper');
+
+        const cleaningContainer = document.getElementById('cleaning-container');
+        const electricalContainer = document.getElementById('electrical-container');
+        const loadingMsg = document.getElementById('loading-msg');
+        const workerSelect = document.getElementById('worker-name');
+        const newWorkerInput = document.getElementById('new-worker-input');
+        const destinationSelect = document.getElementById('destination-select');
+        let unsubscribeWorkers = null;
+        let unsubscribeItems = null;
+
+        const imageModal = document.getElementById('image-modal');
+        const enlargedImg = document.getElementById('enlarged-img');
+        const closeImageBtn = document.getElementById('close-image-btn');
+
+        function openImageModal(url) {
+            enlargedImg.src = url;
+            imageModal.style.display = 'flex';
+        }
+
+        closeImageBtn.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+            enlargedImg.src = '';
+        });
+
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.style.display = 'none';
+                enlargedImg.src = '';
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "toast show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
+        }
+
+        const handleLoginEnter = (e) => { if (e.key === 'Enter') { e.preventDefault(); loginBtn.click(); } };
+        document.getElementById('login-email').addEventListener('keypress', handleLoginEnter);
+        document.getElementById('login-password').addEventListener('keypress', handleLoginEnter);
+
+        loginBtn.addEventListener('click', () => {
+            signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value).catch(() => {
+                errorMsg.style.display = 'block';
+            });
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginScreen.style.display = 'none'; mainApp.style.display = 'block'; loadData();
+            } else {
+                loginScreen.style.display = 'flex'; mainApp.style.display = 'none';
+                document.getElementById('login-password').value = ''; errorMsg.style.display = 'none';
+                if(unsubscribeWorkers) unsubscribeWorkers(); if(unsubscribeItems) unsubscribeItems();
+            }
+        });
+
+        workerSelect.addEventListener('change', function() {
+            if (this.value === '__NEW_WORKER__') { newWorkerInput.style.display = 'block'; newWorkerInput.focus(); } 
+            else { newWorkerInput.style.display = 'none'; newWorkerInput.value = ''; }
+        });
+        newWorkerInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); newWorkerInput.blur(); } });
+
+        let html5QrCode = null;
+        let isCameraActive = false;
+
+        document.getElementById('camera-btn').addEventListener('click', () => {
+            document.getElementById('barcode-modal').style.display = 'flex';
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanFailure
+            ).then(() => {
+                isCameraActive = true;
+            }).catch((err) => {
+                console.error("Δεν ήταν δυνατή η εκκίνηση της κάμερας.", err);
+                alert("Δεν ήταν δυνατή η πρόσβαση στην πίσω κάμερα.");
+                document.getElementById('barcode-modal').style.display = 'none';
+            });
+        });
+
+        function playScanBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1200, ctx.currentTime);
+                gainNode.gain.setValueAtTime(0.25, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                oscillator.start();
+                oscillator.stop(ctx.currentTime + 0.15);
+            } catch (e) {}
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (html5QrCode && isCameraActive) {
+                playScanBeep();
+                html5QrCode.stop().then(() => {
+                    isCameraActive = false;
+                    document.getElementById('barcode-modal').style.display = 'none';
+                    searchInput.value = decodedText;
+                    searchBoxWrapper.style.display = 'block';
+                    searchToggleBtn.classList.add('active');
+                    applySearchFilter();
+                    document.querySelectorAll(`.item-card[data-code="${CSS.escape(decodedText)}"]`).forEach(c => {
+                        c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                }).catch(() => {});
+            }
+        }
+
+        function onScanFailure(error) { }
+
+        document.getElementById('close-camera-btn').addEventListener('click', () => {
+            if (html5QrCode && isCameraActive) {
+                html5QrCode.stop().then(() => {
+                    isCameraActive = false;
+                    document.getElementById('barcode-modal').style.display = 'none';
+                }).catch(() => {
+                    document.getElementById('barcode-modal').style.display = 'none';
+                });
+            } else {
+                document.getElementById('barcode-modal').style.display = 'none';
+            }
+        });
+
+        searchToggleBtn.addEventListener('click', () => {
+            if (searchBoxWrapper.style.display === 'none' || searchBoxWrapper.style.display === '') {
+                searchBoxWrapper.style.display = 'block'; searchToggleBtn.classList.add('active'); searchInput.focus();
+            } else {
+                searchBoxWrapper.style.display = 'none'; searchToggleBtn.classList.remove('active'); searchInput.value = ''; applySearchFilter();
+            }
+        });
+
+        searchInput.addEventListener('input', applySearchFilter);
+
+        function applySearchFilter() {
+            const term = searchInput.value.toLowerCase();
+            
+            document.querySelectorAll('details').forEach(d => { 
+                d.open = false; 
+                d.style.display = 'block'; 
+            });
+            const divider = document.querySelector('.divider');
+            if(divider) divider.style.display = 'block';
+
+            document.querySelectorAll('.item-card').forEach(card => {
+                const searchStr = card.dataset.search.toLowerCase();
+                if (searchStr.includes(term)) {
+                    card.style.display = 'flex';
+                    if (term !== "") {
+                        let parent = card.parentElement;
+                        while (parent && parent.id !== 'main-app') {
+                            if (parent.tagName === 'DETAILS') { parent.open = true; }
+                            parent = parent.parentElement;
+                        }
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (term !== "") {
+                document.querySelectorAll('details').forEach(d => {
+                    const hasVisibleItems = Array.from(d.querySelectorAll('.item-card')).some(card => card.style.display === 'flex');
+                    if (!hasVisibleItems) { d.style.display = 'none'; }
+                });
+                
+                const mainCleaning = document.getElementById('main-cleaning');
+                const mainElectrical = document.getElementById('main-electrical');
+                if (divider && mainCleaning && mainElectrical) {
+                    if (mainCleaning.style.display === 'none' || mainElectrical.style.display === 'none') {
+                        divider.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        // ===== ΑΝΑΙΡΕΣΗ ΑΠΟ ΤΟ TABLET =====
+        const undoModal = document.getElementById('undo-modal');
+        const undoList = document.getElementById('undo-list');
+        const undoSelect = document.getElementById('undo-worker-select');
+        let undoEntries = [];
+
+        function fillUndoWorkers() {
+            undoSelect.innerHTML = '<option value="" disabled selected>-- Επιλέξτε Όνομα --</option>';
+            Array.from(workerSelect.options).forEach(o => {
+                if (!o.value || o.value === '__NEW_WORKER__') return;
+                const opt = document.createElement('option'); opt.value = o.value; opt.textContent = o.textContent; undoSelect.appendChild(opt);
+            });
+            const cur = workerSelect.value;
+            if (cur && cur !== '__NEW_WORKER__' && Array.from(undoSelect.options).some(o => o.value === cur)) undoSelect.value = cur;
+        }
+
+        async function loadUndoEntries() {
+            undoList.innerHTML = '<div class="undo-empty">Φόρτωση...</div>';
+            const since = Date.now() - 48 * 60 * 60 * 1000;
+            try {
+                const [hSnap, rSnap] = await Promise.all([
+                    getDocs(query(collection(db, "history"), where("createdAt", ">=", since), orderBy("createdAt", "desc"))),
+                    getDocs(query(collection(db, "receipts"), where("createdAt", ">=", since), orderBy("createdAt", "desc")))
+                ]);
+                undoEntries = [];
+                hSnap.forEach(d => {
+                    const x = d.data();
+                    if (!x.itemId || x.type === 'adjust') return;
+                    undoEntries.push({ coll: 'history', id: d.id, kind: x.type === 'add' ? 'add' : 'take', worker: x.worker || '', item: x.item || '', itemId: x.itemId, quantity: x.quantity || 0, qtyText: x.quantityText || String(x.quantity), destination: x.destination || '', reason: x.reason || '', timestamp: x.timestamp || '', createdAt: x.createdAt || 0 });
+                });
+                rSnap.forEach(d => {
+                    const x = d.data();
+                    if (x.source !== 'tablet' || !x.itemId) return;
+                    undoEntries.push({ coll: 'receipts', id: d.id, kind: 'receipt', worker: x.receivedBy || '', item: x.item || '', itemId: x.itemId, quantity: x.quantity || 0, qtyText: `+${x.quantity} ${x.unit || ''}`.trim(), destination: '', reason: '', timestamp: x.timestamp || '', createdAt: x.createdAt || 0 });
+                });
+                undoEntries.sort((a, b) => b.createdAt - a.createdAt);
+                renderUndoList();
+            } catch (e) {
+                undoList.innerHTML = '<div class="undo-empty">⚠️ Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση.</div>';
+            }
+        }
+
+        function renderUndoList() {
+            undoList.innerHTML = '';
+            if (undoEntries.length === 0) { undoList.innerHTML = '<div class="undo-empty">Δεν υπάρχουν κινήσεις τις τελευταίες 48 ώρες.</div>'; return; }
+            const verbs = { take: 'πήρε', add: 'πρόσθεσε', receipt: 'παρέλαβε' };
+            undoEntries.forEach(entry => {
+                const row = document.createElement('div'); row.className = 'undo-row';
+                const main = document.createElement('div'); main.className = 'undo-row-main';
+                const line1 = document.createElement('div');
+                const b = document.createElement('b'); b.textContent = entry.worker;
+                line1.appendChild(b);
+                line1.appendChild(document.createTextNode(` ${verbs[entry.kind]} ${entry.qtyText} — ${entry.item}`));
+                const line2 = document.createElement('div'); line2.className = 'undo-row-sub';
+                const extra = [entry.timestamp, entry.destination ? `📍 ${entry.destination}` : '', entry.reason ? `📝 ${entry.reason}` : ''].filter(Boolean);
+                line2.textContent = extra.join(' · ');
+                main.appendChild(line1); main.appendChild(line2);
+                const btn = document.createElement('button'); btn.className = 'undo-row-btn'; btn.textContent = '↩️ Αναίρεση';
+                btn.addEventListener('click', () => performUndo(entry, btn));
+                row.appendChild(main); row.appendChild(btn);
+                undoList.appendChild(row);
+            });
+        }
+
+        async function performUndo(entry, btn) {
+            const undoer = undoSelect.value;
+            if (!undoer) { alert('⚠️ Επιλέξτε πρώτα το όνομά σας!'); undoSelect.focus(); return; }
+            const verbs = { take: 'πήρε', add: 'πρόσθεσε', receipt: 'παρέλαβε' };
+            if (!confirm(`Αναίρεση: ${entry.worker} ${verbs[entry.kind]} ${entry.qtyText} — ${entry.item};\n\nΗ αναίρεση θα καταγραφεί στο όνομά σας (${undoer}).`)) return;
+            btn.disabled = true;
+            try {
+                await runTransaction(db, async (tx) => {
+                    const srcRef = doc(db, entry.coll, entry.id);
+                    const itemRef = doc(db, "items", entry.itemId);
+                    const srcSnap = await tx.get(srcRef);
+                    if (!srcSnap.exists()) throw new Error('GONE');
+                    const itemSnap = await tx.get(itemRef);
+                    if (!itemSnap.exists()) throw new Error('NOITEM');
+                    const cur = itemSnap.data().stock || 0;
+                    const delta = entry.kind === 'take' ? entry.quantity : -entry.quantity;
+                    if (cur + delta < 0) throw new Error('NOSTOCK');
+                    tx.update(itemRef, { stock: cur + delta });
+                    tx.delete(srcRef);
+                    tx.set(doc(collection(db, "undos")), {
+                        undoneBy: undoer,
+                        originalWorker: entry.worker,
+                        kind: entry.kind,
+                        item: entry.item,
+                        itemId: entry.itemId,
+                        quantity: entry.quantity,
+                        quantityText: entry.qtyText,
+                        destination: entry.destination,
+                        reason: entry.reason,
+                        originalTimestamp: entry.timestamp,
+                        timestamp: new Date().toLocaleString('el-GR'),
+                        createdAt: Date.now()
+                    });
+                });
+                showToast('↩️ Η κίνηση αναιρέθηκε');
+                undoEntries = undoEntries.filter(e => !(e.coll === entry.coll && e.id === entry.id));
+                renderUndoList();
+            } catch (e) {
+                btn.disabled = false;
+                if (e.message === 'GONE') { alert('Αυτή η κίνηση έχει ήδη αναιρεθεί.'); loadUndoEntries(); }
+                else if (e.message === 'NOSTOCK') alert('⚠️ Δεν μπορεί να αναιρεθεί: το τρέχον απόθεμα δεν επαρκεί.');
+                else if (e.message === 'NOITEM') alert('⚠️ Το προϊόν δεν υπάρχει πια.');
+                else alert('⚠️ Η αναίρεση δεν ολοκληρώθηκε. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά.');
+            }
+        }
+
+        document.getElementById('undo-open-btn').addEventListener('click', () => {
+            fillUndoWorkers();
+            undoModal.style.display = 'flex';
+            loadUndoEntries();
+        });
+        document.getElementById('undo-close-btn').addEventListener('click', () => { undoModal.style.display = 'none'; });
+        undoModal.addEventListener('click', (e) => { if (e.target === undoModal) undoModal.style.display = 'none'; });
+
+        function resolveWorker() {
+            let worker = workerSelect.value;
+            if (!worker || worker === "-- Επιλέξτε Όνομα --") { alert("⚠️ Παρακαλώ επιλέξτε το όνομά σας!"); workerSelect.focus(); return null; }
+            if (worker === '__NEW_WORKER__') {
+                worker = newWorkerInput.value.trim().toUpperCase();
+                if (!worker) { alert("⚠️ Πληκτρολογήστε το όνομά σας!"); newWorkerInput.focus(); return null; }
+                setDoc(doc(db, "workers", worker), { name: worker }).catch(()=>{});
+            }
+            return worker;
+        }
+
+        let receiveTimer = null;
+        function setReceiveMode(on) {
+            document.body.classList.toggle('receive-mode', on);
+            document.getElementById('receive-banner').style.display = on ? 'flex' : 'none';
+            document.getElementById('receive-toggle-btn').classList.toggle('active', on);
+            clearTimeout(receiveTimer);
+            if (on) receiveTimer = setTimeout(() => setReceiveMode(false), 3 * 60 * 1000);
+        }
+        document.getElementById('receive-toggle-btn').addEventListener('click', () => {
+            if (document.body.classList.contains('receive-mode')) { setReceiveMode(false); return; }
+            const w = workerSelect.value;
+            if (!w || w === "-- Επιλέξτε Όνομα --") { alert("⚠️ Επιλέξτε πρώτα το όνομά σας για να καταγραφεί η παραλαβή στο όνομά σας!"); workerSelect.focus(); return; }
+            setReceiveMode(true);
+        });
+        document.getElementById('receive-exit-btn').addEventListener('click', () => setReceiveMode(false));
+
+        function resetTabletUI() {
+            document.querySelectorAll('details').forEach(d => d.open = false);
+            workerSelect.selectedIndex = 0; newWorkerInput.style.display = 'none'; newWorkerInput.value = '';
+            destinationSelect.value = 'Έδρα';
+            searchInput.value = ''; searchBoxWrapper.style.display = 'none'; searchToggleBtn.classList.remove('active');
+            
+            document.querySelectorAll('.reason-input').forEach(inp => inp.value = '');
+            
+            applySearchFilter(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function loadData() {
+            unsubscribeWorkers = onSnapshot(collection(db, "workers"), (snapshot) => {
+                const currentSelection = workerSelect.value; const defaultOpt = workerSelect.options[0];
+                workerSelect.innerHTML = ''; workerSelect.appendChild(defaultOpt);
+                const workers = []; snapshot.forEach(docSnap => { workers.push({ id: docSnap.id, name: docSnap.data().name }); });
+                workers.sort((a, b) => a.name.localeCompare(b.name)).forEach(w => {
+                    const opt = document.createElement('option'); opt.value = w.name; opt.textContent = w.name; workerSelect.appendChild(opt);
+                });
+                const newOpt = document.createElement('option'); newOpt.value = "__NEW_WORKER__"; newOpt.textContent = "➕ Άλλος / Νέος Εργαζόμενος";
+                workerSelect.appendChild(newOpt);
+                if (currentSelection && currentSelection !== "__NEW_WORKER__" && Array.from(workerSelect.options).some(o => o.value === currentSelection)) { workerSelect.value = currentSelection; }
+            });
+
+            unsubscribeItems = onSnapshot(collection(db, "items"), (snapshot) => {
+                const openStates = new Set();
+                document.querySelectorAll('details[open]').forEach(d => {
+                    const summary = d.querySelector('summary');
+                    if (summary) openStates.add(summary.textContent.trim());
+                });
+
+                cleaningContainer.innerHTML = ''; electricalContainer.innerHTML = ''; loadingMsg.style.display = 'none';
+                const tree = { cleaning: { items: [], children: {} }, electrical: { items: [], children: {} } };
+                
+                snapshot.forEach((docSnapshot) => {
+                    const item = docSnapshot.data(); 
+                    item.id = docSnapshot.id;
+                    const cat = item.category || 'cleaning';
+                    let sub = item.subcategory || 'Γενικά'; let child = item.childcategory || 'Γενικά'; let subchild = item.subchildcategory || 'Γενικά';
+                    if (!tree[cat]) tree[cat] = { items: [], children: {} };
+                    if (!tree[cat].children[sub]) tree[cat].children[sub] = { items: [], children: {} };
+                    let subNode = tree[cat].children[sub];
+                    if (child === 'Γενικά' && subchild === 'Γενικά') { subNode.items.push(item); } 
+                    else if (child !== 'Γενικά' && subchild === 'Γενικά') {
+                        if (!subNode.children[child]) subNode.children[child] = { items: [], children: {} };
+                        subNode.children[child].items.push(item);
+                    } else if (child === 'Γενικά' && subchild !== 'Γενικά') {
+                        if (!subNode.children[subchild]) subNode.children[subchild] = { items: [], children: {} };
+                        subNode.children[subchild].items.push(item);
+                    } else {
+                        if (!subNode.children[child]) subNode.children[child] = { items: [], children: {} };
+                        let childNode = subNode.children[child];
+                        if (!childNode.children[subchild]) childNode.children[subchild] = { items: [], children: {} };
+                        childNode.children[subchild].items.push(item);
+                    }
+                });
+
+                const renderNode = (container, node, levelClass, summaryClass) => {
+                    if (node.items && node.items.length > 0) {
+                        const grid = document.createElement('div'); grid.className = 'sub-inventory-section';
+                        node.items.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => {
+                            const isOutOfStock = item.stock <= 0;
+                            const minStock = item.minStock !== undefined ? parseInt(item.minStock) : 5;
+                            const isLowStock = item.stock <= minStock;
+                            const stockColor = isLowStock && !isOutOfStock ? '#e53e3e' : '#3182ce';
+                            const warningIcon = isLowStock && !isOutOfStock ? '⚠️' : '';
+                            const unit = item.unit || 'τμχ';
+                            
+                            const imageHtml = item.imageUrl && item.imageUrl.trim() !== "" 
+                                ? `<img src="${item.imageUrl}" class="product-img" id="img-${item.id}" onerror="this.outerHTML='<div class=\\'no-img\\'>📦</div>'">` 
+                                : `<div class="no-img">📦</div>`;
+
+                            const searchString = `${item.name} ${item.code || ''} ${item.subcategory} ${item.childcategory} ${item.subchildcategory}`;
+
+                            let boxMult = item.boxMultiplier && item.boxMultiplier > 1 ? parseInt(item.boxMultiplier) : 0;
+                            
+                            // ΑΝ ΕΧΕΙ ΚΟΥΤΑ, ΒΓΑΖΕΙ 2 ΚΟΥΜΠΙΑ. ΑΝ ΟΧΙ, ΒΓΑΖΕΙ 1 ΚΟΥΜΠΙ
+                            let buttonsHtml = '';
+                            if (boxMult > 0) {
+                                buttonsHtml = `
+                                    <button class="take-btn" id="btn-unit-${item.id}" ${isOutOfStock ? 'disabled' : ''}>Πήρα ${unit}</button>
+                                    <button class="take-btn" id="btn-box-${item.id}" style="background-color: #3182ce;" ${isOutOfStock ? 'disabled' : ''}>Πήρα Κούτα</button>
+                                `;
+                            } else {
+                                buttonsHtml = `
+                                    <button class="take-btn" id="btn-${item.id}" ${isOutOfStock ? 'disabled' : ''}>${isOutOfStock ? 'Τελείωσε' : 'Αφαίρεση'}</button>
+                                `;
+                            }
+
+                            const card = document.createElement('div'); card.className = 'item-card';
+                            card.dataset.search = searchString;
+                            card.dataset.code = item.code || '';
+                            card.innerHTML = `
+                                <div class="card-top">
+                                    ${imageHtml}
+                                    <div class="item-name">
+                                        <span>${item.name}</span>
+                                        ${item.code ? `<span class="item-code">Κωδ: ${item.code}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="item-stock" style="color: ${stockColor}">${item.stock} ${unit} ${warningIcon}</div>
+                                
+                                <div class="action-area">
+                                    <input type="number" id="input-${item.id}" class="qty-input" placeholder="Ποσότητα..." min="1" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                                    <div class="btn-row normal-actions">
+                                        ${buttonsHtml}
+                                        <button class="take-btn add-btn" id="add-${item.id}">➕ Προσθήκη</button>
+                                    </div>
+                                    <div class="btn-row receive-actions">
+                                        <button class="take-btn rcv-btn" id="rcv-${item.id}">📥 Παραλαβή</button>
+                                    </div>
+                                </div>
+                                <input type="text" id="reason-${item.id}" class="reason-input normal-actions" placeholder="Αιτιολογία (υποχρ. στην Προσθήκη)...">
+                            `;
+                            grid.appendChild(card);
+                            
+                            setTimeout(() => {
+                                if (item.imageUrl && item.imageUrl.trim() !== "") {
+                                    const imgEl = document.getElementById(`img-${item.id}`);
+                                    if(imgEl) imgEl.addEventListener('click', () => openImageModal(item.imageUrl));
+                                }
+
+                                const inputField = document.getElementById(`input-${item.id}`);
+                                const reasonField = document.getElementById(`reason-${item.id}`);
+
+                                const handleTake = (isBox) => {
+                                    let worker = workerSelect.value;
+                                    if (!worker || worker === "-- Επιλέξτε Όνομα --") { alert("⚠️ Παρακαλώ επιλέξτε το όνομά σας!"); workerSelect.focus(); return; } 
+                                    if (worker === '__NEW_WORKER__') {
+                                        worker = newWorkerInput.value.trim().toUpperCase();
+                                        if (!worker) { alert("⚠️ Πληκτρολογήστε το όνομά σας!"); newWorkerInput.focus(); return; }
+                                        setDoc(doc(db, "workers", worker), { name: worker }).catch(()=>{});
+                                    }
+
+                                    let inputVal = parseInt(inputField.value); if (isNaN(inputVal) || inputVal <= 0) inputVal = 1;
+                                    let reasonText = reasonField.value.trim();
+                                    let destination = destinationSelect.value || 'Έδρα';
+
+                                    let multiplier = isBox ? boxMult : 1;
+                                    let totalToRemove = inputVal * multiplier;
+
+                                    if (totalToRemove > item.stock) { alert(`Υπάρχουν μόνο ${item.stock} συνολικά στη βάση. Δεν επαρκούν!`); return; }
+
+                                    inputField.blur(); reasonField.blur();
+                                    if(document.activeElement) document.activeElement.blur();
+
+                                    updateDoc(doc(db, "items", item.id), { stock: increment(-totalToRemove) }).catch(()=>{});
+
+                                    let logParts = [];
+                                    if(item.childcategory && item.childcategory !== 'Γενικά') logParts.push(item.childcategory);
+                                    if(item.subchildcategory && item.subchildcategory !== 'Γενικά') logParts.push(item.subchildcategory);
+                                    let logSuffix = logParts.length > 0 ? ` (${logParts.join(' - ')})` : '';
+
+                                    let historyQtyText = isBox 
+                                        ? `${inputVal} Κούτες (${totalToRemove} ${unit})` 
+                                        : `${totalToRemove} ${unit}`;
+
+                                    addDoc(collection(db, "history"), {
+                                        worker: worker, 
+                                        item: `${item.subcategory}: ${item.name}${logSuffix}`,
+                                        itemId: item.id,
+                                        quantity: totalToRemove, 
+                                        quantityText: historyQtyText,
+                                        reason: reasonText,
+                                        destination: destination,
+                                        timestamp: new Date().toLocaleString('el-GR'), 
+                                        createdAt: Date.now()
+                                    }).catch(()=>{});
+
+                                    showToast(`✅ Αφαιρέθηκαν ${historyQtyText}`);
+                                    inputField.value = ''; reasonField.value = '';
+                                    setTimeout(() => { resetTabletUI(); }, 2500);
+                                };
+
+                                const handleAdd = () => {
+                                    const worker = resolveWorker(); if (!worker) return;
+                                    let v = parseInt(inputField.value); if (isNaN(v) || v <= 0) v = 1;
+                                    const reasonText = reasonField.value.trim();
+                                    if (!reasonText) { alert("⚠️ Γράψτε την αιτιολογία (π.χ. επιστροφή / αλλαγή νούμερου)!"); reasonField.focus(); return; }
+
+                                    inputField.blur(); reasonField.blur();
+                                    if(document.activeElement) document.activeElement.blur();
+
+                                    updateDoc(doc(db, "items", item.id), { stock: increment(v) }).catch(()=>{});
+
+                                    let logParts = [];
+                                    if(item.childcategory && item.childcategory !== 'Γενικά') logParts.push(item.childcategory);
+                                    if(item.subchildcategory && item.subchildcategory !== 'Γενικά') logParts.push(item.subchildcategory);
+                                    let logSuffix = logParts.length > 0 ? ` (${logParts.join(' - ')})` : '';
+
+                                    addDoc(collection(db, "history"), {
+                                        worker: worker,
+                                        item: `${item.subcategory}: ${item.name}${logSuffix}`,
+                                        itemId: item.id,
+                                        quantity: v,
+                                        quantityText: `+${v} ${unit}`,
+                                        reason: reasonText,
+                                        type: 'add',
+                                        timestamp: new Date().toLocaleString('el-GR'),
+                                        createdAt: Date.now()
+                                    }).catch(()=>{});
+
+                                    showToast(`✅ Προστέθηκαν ${v} ${unit}`);
+                                    inputField.value = ''; reasonField.value = '';
+                                    setTimeout(() => { resetTabletUI(); }, 2500);
+                                };
+
+                                const handleReceive = () => {
+                                    const worker = resolveWorker(); if (!worker) return;
+                                    let v = parseInt(inputField.value); if (isNaN(v) || v <= 0) v = 1;
+                                    inputField.blur();
+                                    if(document.activeElement) document.activeElement.blur();
+
+                                    updateDoc(doc(db, "items", item.id), { stock: increment(v) }).catch(()=>{});
+                                    addDoc(collection(db, "receipts"), {
+                                        itemId: item.id,
+                                        item: `${item.subcategory}: ${item.name}`,
+                                        quantity: v,
+                                        unit: unit,
+                                        receivedBy: worker,
+                                        source: 'tablet',
+                                        timestamp: new Date().toLocaleString('el-GR'),
+                                        createdAt: Date.now()
+                                    }).catch(()=>{});
+
+                                    showToast(`📥 Παραλαβή: +${v} ${unit} — ${item.name}`);
+                                    inputField.value = '';
+                                    if (document.body.classList.contains('receive-mode')) setReceiveMode(true);
+                                };
+
+                                const onEnter = () => { if (document.body.classList.contains('receive-mode')) handleReceive(); else handleTake(false); };
+
+                                document.getElementById(`add-${item.id}`).addEventListener('click', handleAdd);
+                                document.getElementById(`rcv-${item.id}`).addEventListener('click', handleReceive);
+                                if (isOutOfStock) {
+                                    inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (document.body.classList.contains('receive-mode')) handleReceive(); } });
+                                }
+
+                                if (!isOutOfStock) {
+                                    if (boxMult > 0) {
+                                        document.getElementById(`btn-unit-${item.id}`).addEventListener('click', () => handleTake(false));
+                                        document.getElementById(`btn-box-${item.id}`).addEventListener('click', () => handleTake(true));
+                                        
+                                        // Στο Enter θα παίρνει by default την απλή μονάδα για αποφυγή λαθών
+                                        inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } });
+                                        reasonField.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } });
+                                    } else {
+                                        document.getElementById(`btn-${item.id}`).addEventListener('click', () => handleTake(false));
+                                        inputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } });
+                                        reasonField.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } });
+                                    }
+                                }
+                            }, 0);
+                        });
+                        container.appendChild(grid);
+                    }
+                    if (node.children) {
+                        Object.keys(node.children).sort().forEach(childKey => {
+                            const details = document.createElement('details'); details.className = levelClass;
+                            details.innerHTML = `<summary class="${summaryClass}">${childKey}</summary><div class="node-container" style="padding-top: 8px; padding-bottom: 5px;"></div>`;
+                            renderNode(details.querySelector('.node-container'), node.children[childKey], 'sub-child-details', 'sub-child-summary');
+                            container.appendChild(details);
+                        });
+                    }
+                };
+
+                const renderCategory = (container, catData) => {
+                    if(!catData || !catData.children) return;
+                    Object.keys(catData.children).sort().forEach(subKey => {
+                        const details = document.createElement('details'); details.className = 'sub-details';
+                        details.innerHTML = `<summary class="sub-summary">${subKey}</summary><div class="node-container" style="padding-top: 10px;"></div>`;
+                        renderNode(details.querySelector('.node-container'), catData.children[subKey], 'child-details', 'child-summary');
+                        container.appendChild(details);
+                    });
+                };
+
+                renderCategory(cleaningContainer, tree.cleaning); renderCategory(electricalContainer, tree.electrical);
+
+                applySearchFilter();
+
+                if (searchInput.value.trim() === '') {
+                    document.querySelectorAll('details').forEach(d => {
+                        const summary = d.querySelector('summary');
+                        if (summary && openStates.has(summary.textContent.trim())) { d.open = true; }
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
